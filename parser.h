@@ -25,5 +25,7 @@ void add_field(char *, int);
 Field *get_field(char *);
 void delete_field(Field *);
 Document *parse();
+int get_doc_version(int);
+void clean_collection();
 
 #endif

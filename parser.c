@@ -43,11 +43,28 @@ Document *get_doc(int *id) {
 	return d;
 }
 
+int get_doc_version(int docId) {
+	Document *d, *tmp;
+	Field *f;
+	int count=1;
+	char *key = "DocID";
+	HASH_ITER(hh, docs, d, tmp) {
+		HASH_FIND_STR(d->doc, key, f);
+//		printf("Found string!, %d\n",docId);
+		if(f!=NULL){
+//		printf("f->val: %d\ndocId: %d\n\n",f->val,docId);
+		}
+		if(f!= NULL && f->val==docId) { count++; }
+	}
+	return count;
+}
+
 void delete_doc(Document *d) {
 	HASH_DEL(docs, d);
 }
 
 void print_docs() {
+	if(docs==NULL) { printf("Collection empty\n"); }
 	Field *item2, *tmp2;
 	Document *item1, *tmp1;
 	HASH_ITER(hh, docs, item1, tmp1) {
@@ -58,8 +75,22 @@ void print_docs() {
 	}
 }
 
+void clean_collection() {
+	Field *item2, *tmp2;
+	Document *item1, *tmp1;
+	HASH_ITER(hh, docs, item1, tmp1) {
+		HASH_ITER(hh, item1->doc, item2, tmp2) {
+			HASH_DEL(item1->doc, item2);
+			free(item2);
+		}
+		HASH_DEL(docs, item1);
+		free(item1);
+	}
+	free(document);
+}
+
 Document *parse() {
-	FILE *fp = fopen("docs","r");
+	FILE *fp = fopen("data.txt","r");
 	char *saveField, *saveFill;
 	char *line = readLine(fp);
 	int i=0;
@@ -70,6 +101,10 @@ Document *parse() {
 			// processes each token on the line (field)
 			char *k = strtok_r(f, ":", &saveFill);
 			int v = atoi(strtok_r(NULL, ":", &saveFill));
+			if(!strcmp(k,"DocID")) {
+//				printf("DocID!\n");
+				add_field("vn", get_doc_version(v));
+			} 
 			add_field(k, v);
 			f = strtok_r(NULL, " ", &saveField);
 		}
@@ -77,8 +112,9 @@ Document *parse() {
 		document = NULL;
 		line = readLine(fp);
 		i++;
+//		printf("\n\n\n");
 	}
+	print_docs();
 	free(line);
-	printf("Hello, world\n");
 	return docs;
 }

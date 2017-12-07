@@ -1,14 +1,14 @@
 #include <stdio.h>
 #include <string.h>
 #include "parser.h"
-#include "scanner.h"
 
 int main() {
 
-	Document *collection = parse();
-	printf("Collection{%d}{%s}: %d\n", collection->id,
-									collection->doc->key,
-									collection->doc->val);
+	Document *final = parse();
+	printf("Collection{%d}{%s}: %d\n", final->id, final->doc->key, 
+										final->doc->val);
 	printf("Goodbye, world\n");
+	clean_collection();
+	print_docs();
 	return 0;
 }
