@@ -17,15 +17,17 @@ typedef struct Document {
 	UT_hash_handle hh;
 } Document;
 
-extern Document *docs;
-extern Field *document;
+extern int sysId;
+extern char *sortField;
 
-void print_docs();
-void add_field(char *, int);
-Field *get_field(char *);
-void delete_field(Field *);
+void printDocs(Document *);
+Field *addField(Field*,char *, int);
+Field *getField(Field *,char *);
+void deleteField(Field*, Field *);
 Document *parse();
-int get_doc_version(int);
-void clean_collection();
+int getDocVersion(Document *,int);
+int getRecentVersion(Document *);
+void cleanCollection(Document *);
+Document *parseDoc(Document *,char *);
 
 #endif

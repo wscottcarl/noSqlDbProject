@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS= -Wall
-DEPS = scanner.h parser.h
-OBJ = main.o scanner.o parser.o
+DEPS = scanner.h parser.h queries.h
+OBJ = main.o scanner.o parser.o queries.o
 
 %.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
