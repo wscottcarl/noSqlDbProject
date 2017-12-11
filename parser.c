@@ -3,6 +3,7 @@
 //Field *document = NULL;
 //Document *docs = NULL;
 int sysId=1;
+char *sortField="";
 
 Field *addField(Field *document, char *key, int v) {
 	Field *f;
@@ -14,9 +15,9 @@ Field *addField(Field *document, char *key, int v) {
 		f->val = v;
 		HASH_ADD_STR(document, key, f);
 	}
-//	printf("AddField args - key:%s, val:%d\n", key, v);
-//	printf("AddField f - f->key:%s, f->val:%d\n", f->key, f->val);
-//	printf("AddField document - d->key:%s, d->val:%d\n", document->key, document->val);
+	
+//	sortFields(document);
+	
 	return document;
 }
 
@@ -66,21 +67,41 @@ int getRecentVersion(Document *d) {
 	
 	return sysId;
 }
-/*
+
 void deleteDoc(Document *docs, Document *d) {
 	HASH_DEL(docs, d);
 	free(d);
-}*/
+}
+
+void printDocsToFile(Document *docs) {
+
+	Document *s;
+	Field *i;
+	char *vn = "vn";
+	FILE *fp = fopen("wscarl.txt", "a");
+	for(s=docs;s!=NULL;s=s->hh.next) {
+		fprintf(fp, "\t");
+//		i = getField(s->doc, vn);
+//		fprintf(fp, "vn:%s ",i);
+		for(i=s->doc;i!=NULL;i=i->hh.next) {
+//			if(strcmp(i->key,vn)) { continue; }
+			fprintf(fp, "%s:%d ",i->key, i->val);
+		}
+		fprintf(fp,"\n");
+	}
+	fclose(fp);
+}
 
 void printDocs(Document *docs) {
 	if(docs==NULL) { printf("Collection empty\n"); }
-	Field *item2, *tmp2;
-	Document *item1, *tmp1;
-	HASH_ITER(hh, docs, item1, tmp1) {
-		HASH_ITER(hh, item1->doc, item2, tmp2) {
-			printf("$items{%d}{%s} = %d\n", item1->id,
-						 item2->key, item2->val);
+
+	Document *s;
+	Field *i;
+	for(s=docs;s!=NULL;s=s->hh.next) {
+		for(i=s->doc;i!=NULL;i=i->hh.next) {
+			printf("%s: %d ",i->key,i->val);
 		}
+		printf("\n");
 	}
 }
 
@@ -111,7 +132,7 @@ Document *parseDoc(Document *docs, char *line){
 		document = addField(document, k, v);
 		f = strtok_r(NULL, " ", &saveField);
 	}
-	document = addField(document, "sysId",sysId);
+	document = addField(document, "sysid",sysId);
 	docs = addDocById(docs, sysId, document);
 	sysId++;
 	return docs;
@@ -129,3 +150,44 @@ Document *parse() {
 	free(line);
 	return docs;
 }
+
+void sortDb(Document *docs, char *w) {
+	sortField = w;
+	HASH_SORT(docs, sortDocs);
+}
+
+int sortDocs(Document *a, Document *b) {
+	Field *fieldA = getField(a->doc,sortField);
+	Field *fieldB = getField(b->doc,sortField);
+	return fieldA->val - fieldB->val;
+}
+
+void sortFields(Field *doc) {
+	HASH_SORT(doc,orderFields);
+	printf("\n");
+}
+
+int orderFields(Field *a, Field *b) {
+//	printf("a->key: %s\tb->key: %s\tCompare: %d\n",a->key,b->key,alphabet(a->key,b->key));
+	if(strcmp(a->key, "vn")) { /*printf("Strcmp A:vn - %d\n",!strcmp(a->key,"vn"));*/return -1; }
+	if(!strcmp(a->key, "sysId") && strcmp(b->key, "vn")) { return -1; }
+	return alphabet(a->key,b->key);
+}
+
+int alphabet(char *a, char*b) {
+	int i; 
+	for(i=0;i<strlen(a);i++) {
+		if(b[i] == '\0') {
+			printf("%s is after %s\n",a,b);
+			return -1;
+		}
+		if(a[i] == b[i]) { continue;  }
+		if(a[i] < b[i])  { printf("%s is before %s\n",a,b);return 1;  }
+		if(a[i] > b[i])  { printf("%s is after %s\n",a,b);return -1; }
+	}
+	if(b[i]== '\0') { printf("%s and %s are the same\n",a,b);return 0; }
+	else { printf("%s is before %s\n",a,b);return 1; }
+}
+
+
+

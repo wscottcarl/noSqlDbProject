@@ -8,8 +8,10 @@ OBJ = main.o scanner.o parser.o queries.o
 
 main: $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS)
+	rm wscarl.txt
 
 .PHONE: clean
 
 clean:
 	rm $(OBJ)
+	rm wscarl.txt

@@ -20,6 +20,7 @@ typedef struct Document {
 extern int sysId;
 extern char *sortField;
 
+void printDocsToFile(Document *);
 void printDocs(Document *);
 Field *addField(Field*,char *, int);
 Field *getField(Field *,char *);
@@ -29,5 +30,11 @@ int getDocVersion(Document *,int);
 int getRecentVersion(Document *);
 void cleanCollection(Document *);
 Document *parseDoc(Document *,char *);
+Document *addDocById(Document *, int, Field *);
+void sortDb(Document *, char *);
+void sortFields(Field *);
+int sortDocs(Document *, Document *);
+int orderFields(Field *, Field *);
+int alphabet(char *, char *);
 
 #endif
