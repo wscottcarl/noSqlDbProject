@@ -34,22 +34,27 @@ void query(Document *docs, char *d){
 				tmpDb = addDocById(tmpDb, s->id, s->doc);
 			}
 		}
+		printDocsToFile(tmpDb);
 		return;
 	}
 	char *options = strdup(d);
-	char *tmp = strsep(&options, "[");
+	char *version = strsep(&options, "[");
 	char *condition = strsep(&options, "]");
-	tmp = strsep(&options, "[");
+	version = strsep(&options, "[");
 	char *field = strsep(&options, "]");
-	tmp = strsep(&options, "[");
-	char *version = strsep(&options, "]");
+	version = strsep(&options, "[");
+	version = strsep(&options, "]");
 //	printf("Condition: %s\nField: %s\nVersion: %s\n\n", condition, field, version);
 
 
 	tmpDb = filterCondition(docs, condition);
 	tmpDb = filterVersions(tmpDb, version);
 	tmpDb = filterProject(tmpDb, field);
-	//printDocs(tmpDb);
+	printf("\nField: %s\n", field);
+	if( strcmp(field,"") || strcmp(field," ") || strstr(field,"sysid")) {
+		printDocsToFileSysid(tmpDb);
+		return;
+	}
 	printDocsToFile(tmpDb);
 }
 
@@ -72,14 +77,19 @@ Document *filterProject(Document *docs, char *fields){
 
 Field *getFilteredDoc(Field *source, char *field) {
 
-	Field *sink, *tmpF;
-	sink = NULL;
+	Field *sink = NULL;
+	Field *tmpF = NULL;
+//	Field *tmpF = getField(source, "vn");
+//	sink = addFieldNoOrder(sink, tmpF->key, tmpF->val);
 	char *fields = strdup(field);
 	char *tmp = strsep(&fields, ",");
 	while(tmp!=NULL) {
 		tmpF = getField(source,tmp);
 		if( tmpF !=NULL){
-			sink = addField(sink, tmpF->key, tmpF->val);
+			tmpF = getField(source, "vn");
+			sink = addFieldNoOrder(sink, tmpF->key, tmpF->val);
+			tmpF = getField(source, tmp);
+			sink = addFieldNoOrder(sink, tmpF->key, tmpF->val);
 		}
 		tmp = strsep(&fields, ",");
 		if(tmp!=NULL) { tmp++; }
@@ -91,9 +101,7 @@ Field *getFilteredDoc(Field *source, char *field) {
 Document *filterCondition(Document *docs, char *condition) {
 	
 	Document* s;
-	Document* tmpV=docs;
 	Document* tmpC=NULL;
-	char *tmp;
 
 // tmpV should now only contain the appropriate versions
 	if(!strcmp(condition,"") || !strcmp(condition, " ")) {
@@ -101,17 +109,28 @@ Document *filterCondition(Document *docs, char *condition) {
 		tmpC = docs;
 	} else {
 // 	Conditions present. Split by commas
-		tmp = strsep(&condition, ",");
-		while(tmp!=NULL) {
-			tmpC = NULL;
-			for(s=tmpV;s!=NULL;s=s->hh.next) {
-				if(checkCondition(tmp, s->doc)) {
-					tmpC = addDocById(tmpC, s->id, s->doc);
+//  Create a list of conditions
+		for(s=docs;s!=NULL;s=s->hh.next) {
+			int flag = 0, toggled = 0;
+			char *tmp = strdup(condition);
+			char *tmpCond = strsep(&tmp, ",");
+//			char *id = "DocID", *vn = "vn";
+//			printf("DocID: %d, vn: %d\n", getField(s->doc,id)->val, getField(s->doc,vn)->val);
+			while(tmpCond!=NULL) {
+				if(toggled) { break; }
+				if(checkCondition(tmpCond, s->doc) > 0) {
+					flag = 1;
+				} else if (checkCondition(tmpCond, s->doc) == 0) {
+					toggled = 1;
 				}
+				tmpCond = strsep(&tmp, ",");
+				if(tmpCond!=NULL && tmpCond[0] == ' ') { tmpCond++; }
 			}
-			tmpV = tmpC;
-			tmp = strsep(&condition, ",");
-			if(tmp!=NULL) { tmp++; }
+			
+			if(flag && ! toggled) {
+				tmpC = addDocById(tmpC, s->id, s->doc);
+			}
+			free(tmp);
 		}
 	}
 	return tmpC;
@@ -154,32 +173,32 @@ Document *filterVersions(Document *docs, char *version) {
 
 
 int handleNotEq(Field *doc, char *field, char *val) { 
-	if(getField(doc,field) == NULL) { return 0; }
+	if(getField(doc,field) == NULL) { return -1; }
 	if(getField(doc,field)->val != atoi(val)) { return 1; }
 	return 0; 
 }
 int handleLtEq(Field *doc, char *field, char *val) { 
-	if(getField(doc,field) == NULL) { return 0; }
+	if(getField(doc,field) == NULL) { return 01; }
 	if(getField(doc,field)->val <= atoi(val)) { return 1; }
 	return 0; 
 }
 int handleLt(Field *doc, char *field, char *val) { 
-	if(getField(doc,field) == NULL) { return 0; }
+	if(getField(doc,field) == NULL) { return -1; }
 	if(getField(doc,field)->val < atoi(val)) { return 1; }
 	return 0; 
 }
 int handleGtEq(Field *doc, char *field, char *val) { 
-	if(getField(doc,field) == NULL) { return 0; }
+	if(getField(doc,field) == NULL) { return -1; }
 	if(getField(doc,field)->val >= atoi(val)) { return 1; }
 	return 0;
 }
 int handleGt(Field *doc, char *field, char *val) { 
-	if(getField(doc,field) == NULL) { return 0; }
+	if(getField(doc,field) == NULL) { return -1; }
 	if(getField(doc,field)->val > atoi(val)) { return 1; }
 	return 0;
 }
 int handleEq(Field *doc, char *field, char *val) { 
-	if(getField(doc,field) == NULL) { return 0; }
+	if(getField(doc,field) == NULL) { return -1; }
 	if(getField(doc,field)->val==atoi(val)) { return 1; }
 	return 0;
 }
@@ -229,7 +248,7 @@ void count(Document *docs, char *d){
 
 	tmpDb = filterVersions(docs, version);
 	tmpDb = filterProject(tmpDb, fields);
-	
+
 	unsigned int t = HASH_COUNT(tmpDb);
 
 	fprintf(fp, "count_%s: %u\n", fields, t);
@@ -266,11 +285,13 @@ void sort(Document *docs, char *d) {
 	}
 
 	tmpDb = filterBadFields(docs, fields);
+	printf("Filtered bad fields\n");
+	printDocs(tmpDb);
 	tmpDb = filterVersions(tmpDb, version);
+	printf("Filtered versions\n");
+	printDocs(tmpDb);
 	sortDb(tmpDb, fields);
 	printDocsToFile(tmpDb);
-	char *sysId = "sysid";
-	sortDb(docs, sysId);
 }
 
 Document *filterBadFields(Document *docs, char *field) {

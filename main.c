@@ -18,9 +18,13 @@ int main() {
 	}
 */
 	final = parseQueries(final);
-	printDocs(final);
-	printf("Goodbye, world\n");
-	cleanCollection(final);
 //	printDocs(final);
+
+//	printDocs(final);
+//	sortFields(final->doc);
+//	printDocs(final);
+
+	cleanCollection(final);
+	printf("Goodbye, world\n");
 	return 0;
 }
